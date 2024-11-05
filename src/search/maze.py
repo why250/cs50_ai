@@ -29,7 +29,7 @@ class StackFrontier():
             return node
 
 
-class QueueFrontier(StackFrontier):
+class QueueFrontier(StackFrontier)://inherit from a stack frontier
 
     def remove(self):
         if self.empty():
