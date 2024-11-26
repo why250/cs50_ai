@@ -93,33 +93,80 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
+    # Keep track of number of states explored
+    num_explored = 0
 
+    # Initialize frontier to just the starting position
+    start = Node(state = source,parent = None,action = None)
+    # frontier = StackFrontier()
     frontier = QueueFrontier()
+    frontier.add(start)
+
+    # Initialize an empty explored set
     explored = set()
-    frontier.add(Node(source, None, None))
-    while not frontier.empty():
+    #Ctrl + [ 
+    # Keep looping until solution found
+    while True:
+
+        # If nothing left in frontier, then no path
+        if frontier.empty():
+            return None
+            # raise Exception("no solution")
+
+        # Choose a node from the frontier
         node = frontier.remove()
+        num_explored += 1
+
+        # If node is the goal, then we have a solution
+        if node.state == target:
+            
+            solution = []
+            while node.parent is not None:
+                solution.append((node.action,node.state))
+                node = node.parent
+            solution.reverse()
+            return solution
+        
+            ## Ctrl + / 
+            # while node.parent is not None:
+            #     actions.append(node.action)
+            #     cells.append(node.state)
+            #     node = node.parent
+            # actions.reverse()
+            # cells.reverse()
+            # solution = (actions, cells)
+            # return
+
         explored.add(node.state)
-        neighbors = neighbors_for_person(node.state)
-        for neighbor in neighbors:
-            _, person_id = neighbor
+
+        for action,state in neighbors_for_person(node.state):
+            if state not in explored and not frontier.contains_state(state):
+                frontier.add(Node(state = state,parent = node,action = action))
+
+
+    # frontier = QueueFrontier()
+    # explored = set()
+    # frontier.add(Node(source, None, None))
+    # while not frontier.empty():
+    #     node = frontier.remove()
+    #     explored.add(node.state)
+    #     neighbors = neighbors_for_person(node.state)
+    #     for neighbor in neighbors:
+    #         _, person_id = neighbor
             
-            # find a solution
-            if person_id == target:
-                path = [neighbor]
-                while node.parent is not None:
-                    path.append(node.action)
-                    node = node.parent
-                path.reverse()
-                return path
+    #         # find a solution
+    #         if person_id == target:
+    #             path = [neighbor]
+    #             while node.parent is not None:
+    #                 path.append(node.action)
+    #                 node = node.parent
+    #             path.reverse()
+    #             return path
 
-            # add node to frontier
-            if person_id not in explored and not frontier.contains_state(person_id):
-                frontier.add(Node(person_id, node, neighbor))
+    #         # add node to frontier
+    #         if person_id not in explored and not frontier.contains_state(person_id):
+    #             frontier.add(Node(person_id, node, neighbor))
             
-    return None
-
-
 
 
 def person_id_for_name(name):
