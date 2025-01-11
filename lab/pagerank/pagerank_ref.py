@@ -58,19 +58,13 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-
-    N = len(corpus.keys())
     if len(corpus[page]) == 0:
-        prob_dist = dict.fromkeys(corpus.keys(),1/N) # dict.fromkeys generate a dictionary with all keys in corpus and value is 1/len(corpus)
+        prob_distribution = dict.fromkeys(corpus.keys(), 1/len(corpus)) # dict.fromkeys generate a dictionary with all keys in corpus and value is 1/len(corpus)
     else:
-        prob_dist = dict.fromkeys(corpus.keys(),(1-damping_factor)/N)
-    for p in corpus.keys():
-        if p in corpus[page]:
-            prob_dist[p] += damping_factor/len(corpus[page])
-
-    return prob_dist
-
-
+        prob_distribution = dict.fromkeys(corpus.keys(), (1-damping_factor)/len(corpus))
+        for p in corpus[page]:
+            prob_distribution[p] += damping_factor/len(corpus[page])
+    return prob_distribution
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -82,23 +76,25 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    pagerank = dict.fromkeys(corpus.keys(),0)
-    next_page = random.choice(list(corpus.keys())) # random.choice() accepts a list
-    pagerank[next_page] += 1
-    for i in range(n-1):
-        prob_dist = transition_model(corpus,next_page,damping_factor)
-        x = random.random()
-        prob_sum = 0
-        for page,prob in prob_dist.items(): # prob_dist.items() returns a list of tuples
-            prob_sum += prob
-            if prob_sum > x:
+    pagerank = dict.fromkeys(corpus, 0)
+    nextpage = random.choice(list(corpus.keys())) # random.choice() accepts a list
+    pagerank[nextpage] += 1
+    for i in range(n - 1):
+        pro_distri = transition_model(corpus, nextpage, damping_factor)
+        x = random.uniform(0, 1)
+        cumu_p = 0
+        for page, p in pro_distri.items():
+            cumu_p += p
+            if cumu_p > x:
                 break
-        next_page = page
-        pagerank[next_page] += 1
-    pagerank = {p:pagerank[p]/n for p in pagerank.keys()}
-    print(f"Sum of sample_pagerank = {sum(pagerank.values())}")
-
+        nextpage = page
+        pagerank[nextpage] += 1
+    for page in pagerank.keys():
+        pagerank[page] /= n
+    
+    print(f"sample check : {sum(pagerank.values())}")
     return pagerank
+
 
 def iterate_pagerank(corpus, damping_factor):
     """
@@ -109,26 +105,22 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    # Ctrl + / 注释
-    # Ctrl + ] 缩进
-    N = len(corpus.keys())
+    N = len(corpus)
+    pagerank = dict.fromkeys(corpus.keys(), 1/N)
     numlinks = {p:len(corpus[p]) for p in corpus.keys()}
-    pagerank = dict.fromkeys(corpus.keys(),1/N)
+
     flag = True
-    new_pagerank = {}
     while flag:
-        flag =  False
-        for p in corpus.keys():
-            x = sum(pagerank[i]/numlinks[i] for i in corpus.keys() if p in corpus[i] and numlinks[i] != 0)
-            x += sum(pagerank[i]/N for i in corpus.keys() if numlinks[i] == 0) 
-            #  page that has no links at all should be interpreted as having one link for every page in the corpus (including itself).
-            new_pagerank[p] = (1-damping_factor)/N + damping_factor*x
-        for p in corpus.keys():
-            if abs(new_pagerank[p]-pagerank[p])>0.001:
+        flag = False
+        newrank = {}
+        for p in pagerank.keys():
+            x = sum([pagerank[i] / numlinks[i] for i in pagerank.keys() if p in corpus[i] and numlinks[i] > 0])
+            newrank[p] = (1 - damping_factor) / N + damping_factor * x
+            if abs(newrank[p] - pagerank[p]) > 1e-3:
                 flag = True
-            pagerank[p] = new_pagerank[p]
-    print(f"Sum of iterate_pagerank = {sum(pagerank.values()):.3f}") # :.3f keep 3 digits after .
-    
+        for p in pagerank.keys():
+            pagerank[p] = newrank[p]
+    print(f"iterate check : {sum(pagerank.values())}")
     return pagerank
 
 
