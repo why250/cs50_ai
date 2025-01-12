@@ -137,7 +137,7 @@ def gene_num_probability(ori_gene, offer_gene):
         if ori_gene == 0:
             return PROBS["mutation"]
         elif ori_gene == 1:
-            return 0.5
+            return 0.5 # 0.5*(1-Probs["mutation"]) + 0.5*Probs["mutation"] = 0.5
         else :
             return 1 - PROBS["mutation"]
     else:
@@ -159,40 +159,42 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         * everyone in set `have_trait` has the trait, and
         * everyone not in set` have_trait` does not have the trait.
     """
-    names = set(people.keys())
+    names = people.keys()
     conditions = {
         name:{
-            "gene" : 1 if name in one_gene else
-                     2 if name in two_genes else 0,
-            "trait" : True if name in have_trait else False
-        }
-        for name in names
+            "gene":1 if name in one_gene else 2 if name in two_genes else 0,
+            "trait":True if name in have_trait else False
+        }for name in names
     }
-    tot_p = 1
-    for person in names:
+    p_tot = 1
+    for name in names:
         p = 1
-        p_trait_condi_on_gene = PROBS["trait"][conditions[person]["gene"]][conditions[person]["trait"]]
-        p *= p_trait_condi_on_gene
-        if people[person]["mother"] == people[person]["father"] == None:
-            p_gene = PROBS["gene"][conditions[person]["gene"]]
-            p *= p_gene
+        prob_trait_on_condi_gene = PROBS["trait"][conditions[name]["gene"]][conditions[name]["trait"]]
+        p *= prob_trait_on_condi_gene
+        name_mom = people[name]['mother']
+        name_dad = people[name]['father']
+        prob_gene = 1
+        if name_mom == None or name_dad == None:
+            prob_gene *= PROBS['gene'][conditions[name]['gene']]
         else:
-            gene_num = conditions[person]["gene"]
-            mum = people[person]["mother"]
-            dad = people[person]["father"]
-            mum_gene = conditions[mum]["gene"]
-            dad_gene = conditions[dad]["gene"]
-            if gene_num == 0:
-                p *= gene_num_probability(mum_gene, False)
-                p *= gene_num_probability(dad_gene, False)
-            elif gene_num == 1:
-                p1 = gene_num_probability(mum_gene, True)*gene_num_probability(dad_gene, False)
-                p2 = gene_num_probability(mum_gene, False)*gene_num_probability(dad_gene, True)
-                p *= (p1 + p2)
+            num_gene = conditions[name]['gene']
+            if num_gene == 0:
+                prob_gene *= gene_num_probability(conditions[name_mom]['gene'],False)
+                prob_gene *= gene_num_probability(conditions[name_dad]['gene'],False)
+            elif num_gene == 2:
+                prob_gene *= gene_num_probability(conditions[name_mom]['gene'],True)
+                prob_gene *= gene_num_probability(conditions[name_dad]['gene'],True)
             else:
-                p *= gene_num_probability(mum_gene, True)*gene_num_probability(dad_gene, True)
-        tot_p *= p
-    return tot_p
+                p1 = 1
+                p1 *= gene_num_probability(conditions[name_mom]['gene'],False)
+                p1 *= gene_num_probability(conditions[name_dad]['gene'],True)
+                p2 = 1
+                p2 *= gene_num_probability(conditions[name_mom]['gene'],True)
+                p2 *= gene_num_probability(conditions[name_dad]['gene'],False)
+                prob_gene = p1 + p2
+        p *= prob_gene
+        p_tot *= p
+    return p_tot
 
 
 
@@ -203,18 +205,16 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
     Which value for each distribution is updated depends on whether
     the person is in `have_gene` and `have_trait`, respectively.
     """
-    names = set(probabilities.keys())
+    names = probabilities.keys()
     conditions = {
         name:{
-            "gene" : 1 if name in one_gene else
-                     2 if name in two_genes else 0,
-            "trait" : True if name in have_trait else False
-        }
-        for name in names
+            "gene":1 if name in one_gene else 2 if name in two_genes else 0,
+            "trait":True if name in have_trait else False
+        }for name in names
     }
-    for person in names:
-        probabilities[person]["gene"][conditions[person]["gene"]] += p
-        probabilities[person]["trait"][conditions[person]["trait"]] += p
+    for name in names:
+        probabilities[name]['gene'][conditions[name]['gene']] += p
+        probabilities[name]['trait'][conditions[name]['trait']] += p
 
 
 def normalize(probabilities):
@@ -222,14 +222,14 @@ def normalize(probabilities):
     Update `probabilities` such that each probability distribution
     is normalized (i.e., sums to 1, with relative proportions the same).
     """
-    for person in probabilities.keys():
-        normalizer = sum(probabilities[person]["gene"].values())
-        for gene in probabilities[person]["gene"]:
-            probabilities[person]["gene"][gene] /= normalizer
-
-        normalizer = sum(probabilities[person]["trait"].values())
-        for trait in probabilities[person]["trait"]:
-            probabilities[person]["trait"][trait] /= normalizer
+    names = probabilities.keys()
+    for name in names:
+        normalizer = sum(probabilities[name]['gene'].values())
+        for num_gene in probabilities[name]['gene'].keys():
+            probabilities[name]['gene'][num_gene] /= normalizer
+        normalizer = sum(probabilities[name]['trait'].values())
+        for trait in probabilities[name]['trait'].keys():
+            probabilities[name]['trait'][trait] /= normalizer
 
 if __name__ == "__main__":
     main()
