@@ -59,41 +59,36 @@ def load_data(filename):
     labels should be the corresponding list of labels, where each label
     is 1 if Revenue is true, and 0 otherwise.
     """
-    
-    evidence= []
+    evidence = []
     labels = []
-    months = {'Jan':1,'Feb':2,'Mar':3,
-              'Apr':4,'May':5,'June':6,
-              'Jul':7,'Aug':8,'Sep':9,
-              'Oct':10,'Nov':11,'Dec':12}
+    months ={"Jan" : 0, "Feb" : 1, "Mar" : 2, "April" : 3,
+              "May" : 4,     "June" : 5,     "Jul" : 6,  "Aug": 7,
+              "Sep": 8,"Oct" : 9,  "Nov":10,"Dec" : 11}
     with open(filename) as f:
-        reader = csv.DictReader(f)
+        reader = csv.DictReader(f) 
         for row in reader:
             data = []
-            data.append(int(row['Administrative']))
-            data.append(float(row['Administrative_Duration']))
-            data.append(int(row['Informational']))
-            data.append(float(row['Informational_Duration']))
-            data.append(int(row['ProductRelated']))
-            data.append(float(row['ProductRelated_Duration']))
-            data.append(float(row['BounceRates']))
-            data.append(float(row['ExitRates']))
-            data.append(float(row['PageValues']))
-            data.append(float(row['SpecialDay']))
-            data.append(months[row['Month']])
-            data.append(int(row['OperatingSystems']))
-            data.append(int(row['Browser']))
-            data.append(int(row['Region']))
-            data.append(int(row['TrafficType']))
-            data.append(0 if row['VisitorType'] == 'Returning_Visitor' else 1)
-            data.append(0 if row['Weekend'] == 'FALSE' else 1)
-
+            data.append(int(row["Administrative"]))
+            data.append(float(row["Administrative_Duration"]))
+            data.append(int(row["Informational"]))
+            data.append(float(row["Informational_Duration"]))
+            data.append(int(row["ProductRelated"]))
+            data.append(float(row["ProductRelated_Duration"]))
+            data.append(float(row["BounceRates"]))
+            data.append(float(row["ExitRates"]))
+            data.append(float(row["PageValues"]))
+            data.append(float(row["SpecialDay"]))
+            data.append(months[row["Month"]])
+            data.append(int(row["OperatingSystems"]))
+            data.append(int(row["Browser"]))
+            data.append(int(row["Region"]))
+            data.append(int(row["TrafficType"]))
+            data.append(1 if row["VisitorType"] == "Returning_Visitor" else 0)
+            data.append(1 if row["Weekend"] == "TRUE" else 0)
             evidence.append(data)
-            labels.append(0 if row['Revenue'] == 'FALSE' else 1)
-
-    return (evidence,labels)
-
+            labels.append(1 if row["Revenue"] == "TRUE" else 0)
     
+    return (evidence, labels)
 
 
 def train_model(evidence, labels):
@@ -101,11 +96,8 @@ def train_model(evidence, labels):
     Given a list of evidence lists and a list of labels, return a
     fitted k-nearest neighbor model (k=1) trained on the data.
     """
-    
-    model = KNeighborsClassifier(n_neighbors=1)
-    # Fit model
-    model.fit(evidence,labels)
-
+    model = KNeighborsClassifier(1)
+    model.fit(evidence, labels)
     return model
 
 
@@ -124,22 +116,21 @@ def evaluate(labels, predictions):
     representing the "true negative rate": the proportion of
     actual negative labels that were accurately identified.
     """
-    num_lab_p = sum(labels)
-    num_lab_n = len(labels) - num_lab_p
-    num_acu_pre_p = 0
-    num_acu_pre_n = 0
+    tp, tn, totp, totn = 0, 0, 0, 0
+    for label, pred in zip(labels, predictions):
+        if label == 1:
+            totp += 1
+            if label == pred:
+                tp += 1
+        else:
+            totn += 1
+            if label == pred:
+                tn += 1
 
-    for lab,pre in zip(labels,predictions):
-        if lab == 1 and pre == 1:
-            num_acu_pre_p += 1
-        elif lab == 0 and pre == 0:
-            num_acu_pre_n += 1
+    sensitivity = tp/totp
+    specificity = tn/totn
+    return sensitivity, specificity
 
-    sensitivity = num_acu_pre_p / num_lab_p
-    specificty = num_acu_pre_n / num_lab_n
-
-    return (sensitivity,specificty)
-    
 
 if __name__ == "__main__":
     main()
