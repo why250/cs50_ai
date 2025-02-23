@@ -4,8 +4,6 @@ import os
 import string
 import math 
 
-nltk.download('stopwords')
-
 FILE_MATCHES = 1
 SENTENCE_MATCHES = 1
 
@@ -55,13 +53,14 @@ def load_files(directory):
     Given a directory name, return a dictionary mapping the filename of each
     `.txt` file inside that directory to the file's contents as a string.
     """
+    mappings = {}
     files = os.listdir(directory)
-    dict = {}
     for file in files:
-        with open(os.path.join(directory,file)) as f:
-            contents = f.read()
-            dict[file] = contents
-    return dict
+        with open(os.path.join(directory, file)) as f:
+            content = f.read()
+            mappings[file] = content
+    return mappings
+
 
 def tokenize(document):
     """
@@ -72,9 +71,9 @@ def tokenize(document):
     punctuation or English stopwords.
     """
     stopwords = nltk.corpus.stopwords.words("english")
-    words = [word.lower() for word in nltk.word_tokenize(document) 
-            if word not in stopwords and word not in string.punctuation]
-    return words
+    contents = [word.lower() for word in nltk.word_tokenize(document)
+                if word not in stopwords and word not in string.punctuation]
+    return contents
 
 def compute_idfs(documents):
     """
@@ -84,23 +83,17 @@ def compute_idfs(documents):
     Any word that appears in at least one of the documents should be in the
     resulting dictionary.
     """
-    num_docs = len(documents.keys())
-    num_word_appear_docs = {}
-    for doc in documents.keys():
-        flag = False
-        words = documents[doc]
-        for word in words:
-            if word not in num_word_appear_docs.keys():
-                num_word_appear_docs[word] = 1
-                flag = True
-            elif flag == False:
-                num_word_appear_docs[word] += 1
-                flag = True
-    words_idfs = {}
-    for word in num_word_appear_docs.keys():
-        words_idfs[word] = math.log(num_docs/num_word_appear_docs[word])
-    return words_idfs
-# Inverse document frequency (IDF) represents specialbity of each words
+    doc_num = len(documents)
+    dictionary = set()
+    for words in documents.values():
+        dictionary.update(words)
+    words_IDF = dict.fromkeys(dictionary)
+    for word in dictionary:
+        appears = sum([word in words for words in documents.values()])
+        words_IDF[word] = math.log(doc_num/appears)
+
+    return words_IDF
+    # Inverse document frequency (IDF) represents specialbity of each words
 
 def top_files(query, files, idfs, n):
     """
@@ -109,28 +102,20 @@ def top_files(query, files, idfs, n):
     to their IDF values), return a list of the filenames of the the `n` top
     files that match the query, ranked according to tf-idf.
     """
-    file_idfs = dict.fromkeys(files.keys())
-
+    tfidfs = {}
     for file in files.keys():
-        file_idfs[file] = 0
+        tfidf = 0
         for word in query:
-            if word in files[file]:
-                file_idfs[file] += files[file].count(word)*idfs[word]
-    
-    return sorted(files.keys(),key = lambda file: file_idfs[file],reverse = True)[:n]
+            if word not in files[file]:
+                continue
+            tfidf += (files[file].count(word)*idfs[word])
+        tfidfs[file] = tfidf
+    top_n = sorted(files.keys(), key=lambda file: tfidfs[file], reverse=True)[:n]
+    return top_n
 
-
-# lambda function
-# lambda var1,var2,... : expression(var1,var2,...)
-# equals to 
-# def function(var1,var2,...):
-#   return expression(var1,var2,...)
-
-# sorted(iterable,*,key=None,reverse=False)
-
-
-def query_term_density(query,sentence):
-    return sum([word in query for word in sentence])/len(sentence)
+def query_term_density(sent, query):
+    appear = sum([word in sent for word in query])
+    return appear/len(sent)
 
 def top_sentences(query, sentences, idfs, n):
     """
@@ -140,17 +125,18 @@ def top_sentences(query, sentences, idfs, n):
     the query, ranked according to idf. If there are ties, preference should
     be given to sentences that have a higher query term density.
     """
-    sentence_idfs = dict.fromkeys(sentences.keys())
+    scores = dict.fromkeys(sentences.keys())
     for sentence in sentences.keys():
-        sentence_idfs[sentence] = 0
+        idf = 0
         for word in query:
             if word not in sentences[sentence]:
                 continue
-            sentence_idfs[sentence] += idfs[word]
+            idf += idfs[word]
+        scores[sentence] = idf
+    top_n =sorted(sentences.keys(), key=lambda sentence: 
+    (scores[sentence], query_term_density(sentence, query)), reverse=True)[:n]
+    return top_n
 
-    top_sentences = sorted(sentences.keys(),key = lambda sentence: 
-    (sentence_idfs[sentence],query_term_density(query,sentence)),reverse = True)[:n]
-    return top_sentences
 
 if __name__ == "__main__":
     main()
